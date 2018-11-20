@@ -6,6 +6,7 @@ import datetime
 import re
 import time
 import argparse
+import threading 
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/..'))
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
@@ -35,8 +36,8 @@ class Server():
 		self.parser.add_argument("--led-multiplexing", action="store", help="Multiplexing type: 0=direct; 1=strip; 2=checker; 3=spiral; 4=ZStripe; 5=ZnMirrorZStripe; 6=coreman; 7=Kaler2Scan; 8=ZStripeUneven (Default: 0)", default=0, type=int)
 
 		self.managers = []
-		self.managers.append(Alarm(name="alarm"))
-		self.managers.append(Display(name="display", self.parser))
+		self.managers.append(Alarm("alarm"))
+		self.managers.append(Display("display", self.parser))
 
 		for manager in self.managers:
 			manager.start()
@@ -66,6 +67,9 @@ class Server():
 		    finally:
 		        # Clean up the connection
 		        connection.close()
+		        # join all threads 
+		        for manager in self.managers:
+		        	manager.join()
 
 	def handle_data(self, client_address,data):
 		#check format and size
@@ -79,9 +83,9 @@ class Server():
 					manager.receive_message(message)
 
 #Managers
-class Manager(Thread):
+class Manager(threading.Thread):
 	def __init__(self, name):
-		Thread.__init__(self)
+		threading.Thread.__init__(self)
 		self.name = name
 		self.message= []
 
@@ -136,7 +140,7 @@ class Display(Manager):
 			name {[type]} -- [description]
 			parser {[type]} -- [description]
 		"""
-		super(Manager, self).__init__(name)
+		super(Display, self).__init__(name)
 		self.args = parser.parse_args()
 		self.options = RGBMatrixOptions()
 		if self.args.led_gpio_mapping != None:
@@ -164,6 +168,8 @@ class Display(Manager):
 		self.font = graphics.Font()
 		self.font.LoadFont("../fonts/7x13.bdf")
 
+		self.canvas = self.matrix.CreateFrameCanvas()
+
 	def receive_message(self, message):
 		"""[summary]
 		
@@ -187,34 +193,33 @@ class Display(Manager):
 		time.sleep(value/1000000.0)
 
 	def run(self):
+		
 		"""[summary]
 		
 		[description]
 		"""
-		if self.notifications[0]:
-			notification = self.notifications[0]
-			self.notifications.pop(0)
-			offscreen_canvas = self.matrix.CreateFrameCanvas()
-			textColor = graphics.Color(255, 255, 0)
-			pos = offscreen_canvas.width
-			my_text = notification[3]
-			length = 0
-			while not (pos + length < 0):
-				offscreen_canvas.Clear()
-				length = graphics.DrawText(offscreen_canvas, self.font, pos, 10, textColor, my_text)
-				pos -= 1
-				time.sleep(0.1)
-				offscreen_canvas = self.matrix.SwapOnVSync(offscreen_canvas)
-		else :
-			offscreen_canvas.Clear()
-			graphics.DrawText(0, self.font, 0, 10, graphics.Color(120, 120, 255), "10:30")
+		while True:
+			self.canvas.Clear()
+			if len(self.notifications) > 0:
+				log("notification display called")
+				notification = self.notifications[0]
+				self.notifications.pop(0)
+				textColor = graphics.Color(255, 255, 0)
+				pos = self.canvas.width
+				my_text = notification[3]
+				length = 0
+				while not (pos + length < 0):
+					self.canvas.Clear()
+					length = graphics.DrawText(self.canvas, self.font, pos, 10, textColor, my_text)
+					pos -= 1
+					time.sleep(0.1)
+			else :
+				graphics.DrawText(self.canvas, self.font, 0, 10, graphics.Color(120, 120, 255), self.get_time())
+			self.canvas = self.matrix.SwapOnVSync(self.canvas)
 
-	def get_hour(self):
-		"""[summary]
-		
-		[description]
-		"""
-    	pass
+	def get_time(self):
+		tdate = datetime.datetime.now()
+		return "{:d}:{:02d}".format(tdate.hour, tdate.minute)
 
 	def add_notification(self, notification):
 		"""[summary]

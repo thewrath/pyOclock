@@ -15,6 +15,12 @@ sudo systemctl enable nodered.service
 
 Ajouter le script de démarrage du serveur tcp interne : 
 
+Lancer le server python : 
+
+from server folder : 
+
+"sudo python3 main.py --led-gpio-mapping=adafruit-hat --led-rows=16 --led-cols=32 --led-brightness 50"
+
 //commande script TODO 
 
 A desactiver en production : 
@@ -30,3 +36,4 @@ TCP Server message structure
 TODO : 
 
 - Add watchdog 
+- Use time or dateTime ?? 
