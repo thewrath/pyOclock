@@ -1,6 +1,6 @@
 # PyOclock 
 
-![logo](https://raw.githubusercontent.com/thewrath/pyOclock/master/credentials/logo.png)
+![logo](https://raw.githubusercontent.com/thewrath/pyOclock/master/credentials/logo.png=100x20)
 
 Une horloge connectée faite avec un Raspberry et un peu de Python.  
 
