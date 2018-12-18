@@ -1,5 +1,7 @@
 # PyOclock 
 
+![logo](https://github.com/thewrath/pyOclock/master/credentials/logo.png)
+
 Une horloge connectée faite avec un Raspberry et un peu de Python.  
 
 ## Dépendances :
@@ -22,6 +24,10 @@ Une horloge connectée faite avec un Raspberry et un peu de Python.
 `sudo python3 main.py --led-gpio-mapping=adafruit-hat --led-rows=16 --led-cols=32 --led-brightness 50"`
 
 ### Lancer Node-red : 
+
+Si Node-red n'est pas installer sur votre RPI : [Installer Node-red sur RPI](https://nodered.org/docs/hardware/raspberrypi)
+
+Une fois l'installation terminé, vous pouvez importer le contenu du fichier `node-red/flow.json` dans un nouveau flow Node-red.
 
 ## Faire fonctionner le système au démarrage du RPI : 
 
