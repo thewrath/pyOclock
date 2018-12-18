@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*
 #!/usr/bin/env python3
 import socket
 import os
@@ -7,9 +8,19 @@ import re
 import time
 import argparse
 import threading 
+import re 
+import schedule
+import json 
+#image drawing 
+from PIL import Image
+from PIL import ImageDraw
+
+from pygame import mixer
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/..'))
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
+
+PORT = 16666
 
 class Server():
 	"""[summary]
@@ -36,40 +47,29 @@ class Server():
 		self.parser.add_argument("--led-multiplexing", action="store", help="Multiplexing type: 0=direct; 1=strip; 2=checker; 3=spiral; 4=ZStripe; 5=ZnMirrorZStripe; 6=coreman; 7=Kaler2Scan; 8=ZStripeUneven (Default: 0)", default=0, type=int)
 
 		self.managers = []
-		self.managers.append(Alarm("alarm"))
+		#self.managers.append(Alarm("alarm"))
 		self.managers.append(Display("display", self.parser))
 
 		for manager in self.managers:
 			manager.start()
 
 	def run(self):
-		"""[main loop for the tcp server]
-		
-		[description]
-		"""
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		server_address = ('localhost', 16666)
+		server_address = ('localhost', PORT)
 		log("Starting up on {} port {} ".format(*server_address))
 		sock.bind(server_address)
-		#listen for one icoming connection
-		sock.listen(1)
-
 		while True:
-		    # Wait for a connection
-		    log('waiting for a connection')
-		    connection, client_address = sock.accept()
-		    try:
-		    	log('Connection from'.format(client_address))
-		    	# Receive the data in small chunks and retransmit it
-		    	data = connection.recv(64)
-		    	log(data)
-		    	self.handle_data(client_address,data.decode("utf-8"))
-		    finally:
-		        # Clean up the connection
-		        connection.close()
-		        # join all threads 
-		        for manager in self.managers:
-		        	manager.join()
+			sock.listen(1)
+			log("Waiting for a connection")
+			connection, client_address = sock.accept()
+			data = connection.recv(1024)
+			log(data.decode("utf-8"))
+			self.handle_data(client_address, data.decode("utf-8"))
+		log("Server stopped")
+		connection.close()
+		sock.close()
+		for manager in self.managers:
+			manager.join()
 
 	def handle_data(self, client_address,data):
 		#check format and size
@@ -87,7 +87,7 @@ class Manager(threading.Thread):
 	def __init__(self, name):
 		threading.Thread.__init__(self)
 		self.name = name
-		self.message= []
+		self.messages = []
 
 	def run(self):
 		pass
@@ -96,7 +96,8 @@ class Manager(threading.Thread):
 		return self.name
 
 	def receive_message(self, message):
-		self.message.append(message)
+		if len(self.messages) < 100 :
+			self.messages.append(message)
 
 class Alarm(Manager):
 	"""[summary]
@@ -115,13 +116,70 @@ class Alarm(Manager):
 			name {[type]} -- [description]
 		"""
 		super(Alarm, self).__init__(name)
+		self.alarm_song = "/home/pi/pyOclock/assets/audio/alarm_0.mp3"
+		mixer.init()
+		mixer.music.load(self.alarm_song)
+		
+		with open('alarm_options.json') as json_data:
+			self.alarm_data = json.load(json_data)
+
+		if not self.alarm_data :
+			sys.exit()	
+
+		self.clocks = self.alarm_data["Clocks"]
+		log("All availables alarms : ")
+		log(self.clocks)	
+		self.current_clock = 1717
+		self.find_next_clock()
+		self.alarm_functions  = {
+  			"set_option": self.set_option,
+		}
+
 
 	def run(self):
 		"""[summary]
 		
 		[description]
 		"""
-		super(Alarm, self).run()
+		while True:
+			schedule.run_pending()
+			time.sleep(30)
+			if len(self.messages) > 0:
+				log("notification display called")
+				message = self.messages[0]
+				self.messages.pop(0)
+				#ajouter verification du type si c'est un int 
+				self.alarm_functions[message[1]](message)
+
+	def find_next_clock(self):
+		#"[0-9]+(,[0-9]+)*"
+		#si marche pas bien pour le tri, chercher le minimum ici et faire en sorte d'affecter le minimum au schedule si il est superieur à tout les autres 
+		with open('alarm_options.json') as json_data:
+			self.alarm_data = json.load(json_data)
+		self.clocks = self.alarm_data["Clocks"]
+		index = "0" 
+		for clock in self.clocks:
+			if(int(self.clocks[clock]) > int(self.get_time())):
+				index = clock
+				break 
+		log("Next selected alarm : "+self.clocks[index])
+ 
+		schedule_time = "{:d}:{:02d}".format(int(self.clocks[index][:2]), int(self.clocks[index][2:]))
+		schedule.every().day.at(schedule_time).do(self.turn_on_alarm)
+
+	def get_time(self):
+		tdate = datetime.datetime.now()
+		return "{:d}{:02d}".format(tdate.hour, tdate.minute)	
+
+	def set_option(self, message):
+		pass
+
+	def turn_on_alarm(self):
+		log("Alarm is rigging")
+		mixer.music.play()
+		self.find_next_clock()
+
+
 
 class Display(Manager):
 	"""[summary]
@@ -166,9 +224,37 @@ class Display(Manager):
 		self.notifications = []
 
 		self.font = graphics.Font()
-		self.font.LoadFont("../fonts/7x13.bdf")
+		self.font.LoadFont("/home/pi/pyOclock/fonts/6x13B.bdf")
 
 		self.canvas = self.matrix.CreateFrameCanvas()
+		self.drawing_functions  = {
+  			"scrolling_text": self.scroll_text_drawing,
+  			"static_text": self.static_text_drawing,
+  			"scrolling_image": self.scroll_image_drawing,
+  			"static_image": self.static_image_drawing,
+		}
+		self.images_path = {
+			"twitter" : "/home/pi/pyOclock/assets/images/twitter.jpg", 
+
+			"01d" : "/home/pi/pyOclock/assets/images/01d.jpg", 
+			"02d" : "/home/pi/pyOclock/assets/images/02d.jpg", 
+			"03d" : "/home/pi/pyOclock/assets/images/03d.jpg", 
+			"04d" : "/home/pi/pyOclock/assets/images/04d.jpg", 
+			"09d" : "/home/pi/pyOclock/assets/images/09d.jpg", 
+			"10d" : "/home/pi/pyOclock/assets/images/10d.jpg", 
+			"11d" : "/home/pi/pyOclock/assets/images/11d.jpg",
+			"13d" : "/home/pi/pyOclock/assets/images/13d.jpg",
+			
+			"01n" : "/home/pi/pyOclock/assets/images/01n.jpg", 
+			"02n" : "/home/pi/pyOclock/assets/images/02n.jpg", 
+			"03n" : "/home/pi/pyOclock/assets/images/03n.jpg", 
+			"04n" : "/home/pi/pyOclock/assets/images/04n.jpg", 
+			"09n" : "/home/pi/pyOclock/assets/images/09n.jpg", 
+			"10n" : "/home/pi/pyOclock/assets/images/10n.jpg", 
+			"11n" : "/home/pi/pyOclock/assets/images/11n.jpg",
+			"13n" : "/home/pi/pyOclock/assets/images/13n.jpg",
+		}
+		self.default_color = hex_to_rgb("#B10DC9") 
 
 	def receive_message(self, message):
 		"""[summary]
@@ -178,14 +264,14 @@ class Display(Manager):
 		Arguments:
 			message {[type]} -- [description]
 		"""
-		if len(message) >= 4:
+		if len(message) >= 4 and len(self.messages) < 100:
     			log("Call to add_notification")
     			self.add_notification(message)
 	
 	def usleep(self, value):
 		"""[summary]
 		
-		[description]
+		[description]self.default_
 		
 		Arguments:
 			value {[type]} -- [description]
@@ -200,21 +286,96 @@ class Display(Manager):
 		"""
 		while True:
 			self.canvas.Clear()
+			time.sleep(1)
 			if len(self.notifications) > 0:
 				log("notification display called")
 				notification = self.notifications[0]
 				self.notifications.pop(0)
-				textColor = graphics.Color(255, 255, 0)
-				pos = self.canvas.width
-				my_text = notification[3]
-				length = 0
-				while not (pos + length < 0):
-					self.canvas.Clear()
-					length = graphics.DrawText(self.canvas, self.font, pos, 10, textColor, my_text)
-					pos -= 1
-					time.sleep(0.1)
+				#ajouter verification du type si c'est un int 
+				self.drawing_functions[notification[1]](notification)
+				log("Return to hour display")
 			else :
-				graphics.DrawText(self.canvas, self.font, 0, 10, graphics.Color(120, 120, 255), self.get_time())
+				graphics.DrawText(self.canvas, self.font, 1, 12, graphics.Color(self.default_color[0], self.default_color[1], self.default_color[2]), self.get_time())
+			self.canvas = self.matrix.SwapOnVSync(self.canvas)
+	
+	def scroll_text_drawing(self, notification):
+		log("Scroll drawing called")
+		match = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', notification[4])
+		if match:                      
+		  color = hex_to_rgb(notification[4])
+
+		else:
+		  color = self.default_color
+		textColor = graphics.Color(color[0], color[1], color[2])
+		pos = self.canvas.width
+		my_text = notification[3]
+		length = 0
+		while (pos + length >= 0):
+			time.sleep(0.1)
+			self.canvas.Clear()
+			length = graphics.DrawText(self.canvas, self.font, pos, 12, textColor, my_text)
+			pos -= 1
+			self.canvas = self.matrix.SwapOnVSync(self.canvas)	
+		
+
+	def static_text_drawing(self, notification):
+		log("Static text drawing called")
+		match = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', notification[4])
+		if match:                      
+		  color = hex_to_rgb(notification[4])
+
+		else:
+		  color = self.default_color
+		textColor = graphics.Color(color[0], color[1], color[2])
+		timeout = int(notification[5])
+		my_text = notification[3]
+		#à refaire 
+		x_pos = 1 
+		log("taille du texte"+str(len(my_text)))
+		if(len(my_text) < 5 ):
+		 	x_pos = 6
+		length = 0
+		while (timeout > 0):
+			time.sleep(0.1)
+			self.canvas.Clear()
+			timeout = timeout - 1
+			length = graphics.DrawText(self.canvas, self.font, x_pos, 12, textColor, my_text)
+			self.canvas = self.matrix.SwapOnVSync(self.canvas)
+
+	def scroll_image_drawing(self, notification):
+		log("Scroll image drawing called")
+		image_name = notification[2]
+		if image_name in self.images_path:
+			image = Image.open(self.images_path[image_name]).convert('RGB')
+			image.resize((self.matrix.width, self.matrix.height), Image.ANTIALIAS)
+		else:
+			return
+		img_width, img_height = image.size
+		xpos = self.canvas.width
+		while xpos + img_width >= 0:
+			time.sleep(0.1)
+			xpos -= 1
+			self.canvas.Clear()
+			self.canvas.SetImage(image, xpos)
+			self.canvas = self.matrix.SwapOnVSync(self.canvas)
+
+	def static_image_drawing(self, notification):
+		log("Static image drawing called")
+		image_name = notification[2]
+		if image_name in self.images_path:
+			image = Image.open(self.images_path[image_name]).convert('RGB')
+			image.resize((self.matrix.width, self.matrix.height), Image.ANTIALIAS)
+		else:
+			return 
+		#find xpos with width 
+		xpos = 8
+		img_width, img_height = image.size
+		timeout = int(notification[3])
+		while (timeout > 0):
+			time.sleep(0.1)
+			timeout -= 1
+			self.canvas.Clear()
+			self.canvas.SetImage(image, xpos)
 			self.canvas = self.matrix.SwapOnVSync(self.canvas)
 
 	def get_time(self):
@@ -231,6 +392,11 @@ class Display(Manager):
 		"""
 		self.notifications.append(notification)
 
+def hex_to_rgb(value):
+	value = value.lstrip('#')
+	lv = len(value)
+	return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+
 def log(message):
 	"""[summary]
 	
@@ -240,9 +406,12 @@ def log(message):
 		message {[type]} -- [description]
 	"""
 	time = datetime.datetime.now()
-	print(str(time)+" : "+str(message))
+	print(str(time).encode('utf-8')+ b" : "+ str(message).encode('utf8'))
 
 
 if __name__ == '__main__':
+	#for production mode 
+	sys.stdout = open("./%s" % "log.txt", "w")
+	log("Welcome in pyOclock Server ! V0.1")
 	server = Server()
 	server.run()

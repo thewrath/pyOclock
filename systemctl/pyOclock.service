@@ -1,0 +1,9 @@
+[Unit]
+Description=Matrix based clock for RPI and node-red launcher 
+
+[Service]
+Type=simple 
+ExecStart=/usr/bin/python3 /home/pi/pyOclock/server/main.py --led-gpio-mapping=adafruit-hat --led-rows=16 --led-cols=32 --led-brightness 50 --led-pixel-mapper Rotate:180
+
+[Install]
+WantedBy=multi-user.target
