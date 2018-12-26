@@ -3,7 +3,7 @@
 
 <img src="https://raw.githubusercontent.com/thewrath/pyOclock/master/credentials/logo.png" alt="drawing" width="200"/>
 
-V0.7b > Cogsworth prototype
+**V0.7b**  *Cogsworth prototype*
 
 ## A connected clock made with a Raspberry and a little Python  
 
