@@ -1,83 +1,97 @@
 # PyOclock 
+<img src="https://img.shields.io/badge/coverage-50%25-yellowgreen.svg" alt="drawing" width="200"/>
 
 <img src="https://raw.githubusercontent.com/thewrath/pyOclock/master/credentials/logo.png" alt="drawing" width="200"/>
 
-Une horloge connectée faite avec un Raspberry et un peu de Python.  
+V0.7b > Cogsworth prototype
 
-## Dépendances :
+## A connected clock made with a Raspberry and a little Python  
 
-### Dépendances logiciels : 
+## Dependencies :
+
+### Softwares dependencies : 
 
 - node-red
 - rgbMatrix python librairie 
 
-### Dépendances matériels : 
+### Hardware dependencies : 
 
-- Carte RPI (Zéro ou B)
-- Matrix LED Bonnet de adafruit 
-- Matrix LED de adafruit (16x32)
+- RPI card (Zero or B or other)
+- Matrix LED Beanie of adafruit 
+- Matrix LED adafruit LED (16x32)
 
 ## Installation :
 
-### Lancer le serveur Python : 
+### Launch internal TCP server (write in Python) : 
 
 `sudo python3 main.py --led-gpio-mapping=adafruit-hat --led-rows=16 --led-cols=32 --led-brightness 50`
 
-### Lancer Node-red : 
+### Launch Node-red : 
 
-Si Node-red n'est pas installer sur votre RPI : [Installer Node-red sur RPI](https://nodered.org/docs/hardware/raspberrypi)
+If Node-red is not installed on your RPI : [Node-red installation](https://nodered.org/docs/hardware/raspberrypi)
 
-Une fois l'installation terminé, vous pouvez importer le contenu du fichier `node-red/flow.json` dans un nouveau flow Node-red.
+Once the installation is finished, you can import the contents of the file `node-red/flow.json` into a new Node-red flow.
 
-## Faire fonctionner le système au démarrage du RPI : 
+## Run the system at RPI startup : 
 
-### Ajouter node-red au démarrage du raspberry : 
+### Add node-red when starting the Raspberry : 
 
 `sudo systemctl enable nodered.service`
 
-### Ajouter le script de démarrage du serveur tcp interne : 
+### Add the start script of the internal tcp server : 
 
-Placer le service dans `/etc/systemd/system` :
+Place the service in `/etc/systemd/system` :
 
 `sudo cp systemctl/pyOclock.service /etc/systemd/system/pyOclock.service`
 
-Mettre à jour les services de systemctl : 
+Update systemctl services : 
 
 `systemctl --system daemon-reload`
 
-Activer le service pyOclock : 
+Enable pyOclock service : 
 
 `systemctl enable pyOclock.service`
 
-Démarrer le service pyOclock :
+Start the pyOclock service :
 
 `systemctl start pyOclock.service`
 
-## Pour les développeurs : 
+## For developers : 
 
-La logique du système réside au coeur de node-red qui envoie des messages sur un serveur TCP (présent sur le RPI).
-Vous pouvez facilement modifier et adapter selon vos besoins le système node-red pour qu'il commande le serveur TCP et affiche ce que vous voulez. 
+The system logic lies at the heart of node-red, which sends messages to a TCP server (present on the RPI).
+You can easily modify and adapt the node-red system to your needs so that it can control the TCP server and display what you want. 
 
-### Serveur node-red : 
+### Node-red server : 
 
-Node-red possède une page d'administration et de configuration sur `127.0.0.1:1880`
+Node-red has an administration and configuration page on `127.0.0.1:1880`
 
-### Serveur TCP interne :
+### Internal TCP server :
 
-Ce serveur est là pour commander la matrice de LED et prochainement l'audio du RPI. 
-Il écoute sur le port 16666, biensur vous pouvez modifier ça dans le code. 
+This server is there to control the LED matrix and soon the RPI audio. 
+He listens on port 16666, of course you can change that in the code.
 
-#### Liste des commandes du serveur TCP interne  
+#### List of commands for the internal TCP server  
 
 - &display&&option_set&&option_name&&option_value&
 - &display&&type&&image_path&&message&
 - &alarm&&option_set&&option_name&&option_value&
 
+
+### Contribute :
+
+All contributions are welcome, whether it is a bug in the code or to add features.
+Of course you are free to use the software as you wish, as long as you comply with the license. 
+
+You can contact me on github or by email 
+
 ### TODO : 
 
-- Add watchdog, un thread capable d'en reanimer d'autre lorsque ceci ne répondent plus 
+- Add watchdog, a thread capable of resuscitating others when this no longer responds 
 - Add stop function  
-- log -> fichier et rendre le fichier accéssible depuis l'api node RED 
-- supprimer la partie image_path pour l'envoie d'un msg 
-- Faire un fichier de conf modifiable depuis node-red 
-- Gestion du chemin absolue pour gérer les assets 
+- log -> file and make the file accessible from the RED api node 
+- delete the image_path part to send an msg 
+- Make a conf file editable from node-red 
+- Management of the absolute path to manage assets 
+- Add more configurable variables directly from the command 
+- Add compatibility with all matrix sizes 
+- Add compatibility with LCD screens 
