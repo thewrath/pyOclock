@@ -19,7 +19,6 @@ from pygame import mixer
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/..'))
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
-import plugin 
 
 PORT = 16666
 

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*
 #!/usr/bin/env python3
-from ... import plugin
+from plugins.plugin import *
 
+def plugin_main(is_enable):
+	return Yes("yes", is_enable)
 
-
-@declared
-@enable(name="yes")
 class Yes(Plugin):
 	"""[summary]
 	
@@ -14,7 +13,7 @@ class Yes(Plugin):
 	Extends:
 		Plugin
 	"""
-	def __init__(self, name):
+	def __init__(self, name, enable):
 		"""[summary]
 		
 		[description]
@@ -22,7 +21,7 @@ class Yes(Plugin):
 		Arguments:
 			name {[type]} -- [description]
 		"""
-		super(Yes, self).__init__(name)
+		super(Yes, self).__init__(name, enable)
 	
 	def run(self):
 		print("yes") 
