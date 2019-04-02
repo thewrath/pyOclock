@@ -95,3 +95,7 @@ You can contact me on github or by email
 - Add more configurable variables directly from the command 
 - Add compatibility with all matrix sizes 
 - Add compatibility with LCD screens 
+- Add plugin management and cherrypi as plugin 
+- Error handling for plugin loading
+- Move to HTTP Server with JSON payload 
+- Add singleton to unprovide possibility to create multiple server 

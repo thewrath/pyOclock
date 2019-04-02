@@ -22,6 +22,10 @@ class No(Plugin):
 			name {[type]} -- [description]
 		"""
 		super(No, self).__init__(name, enable)
-	
+
+	def receive_message(self, message):
+		super(No, self).receive_message(message)
+		print("No as received a message "+self.messages[0])
+
 	def run(self):
-		print("yes") 
+		print("no")

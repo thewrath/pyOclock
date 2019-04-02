@@ -22,6 +22,12 @@ class Yes(Plugin):
 			name {[type]} -- [description]
 		"""
 		super(Yes, self).__init__(name, enable)
-	
+
+
+	def receive_message(self, message):
+		super(Yes, self).receive_message(message)
+		print("Yes as received a message "+self.messages[0])
+
+
 	def run(self):
 		print("yes") 

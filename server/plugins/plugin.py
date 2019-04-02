@@ -20,7 +20,7 @@ class Plugin(threading.Thread):
 		return self.enable
 
 	def receive_message(self, message):
-		if len(self.messages) < buffer_length :
+		if len(self.messages) < self.buffer_length :
 			self.messages.append(message)
 
 	def __repr__(self, ):
