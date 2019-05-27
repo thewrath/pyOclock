@@ -21,13 +21,12 @@ class Yes(Plugin):
 		Arguments:
 			name {[type]} -- [description]
 		"""
-		super(Yes, self).__init__(name, enable)
+		super(Yes, self).__init__(name, "useless", enable)
 
 
 	def receive_message(self, message):
 		super(Yes, self).receive_message(message)
-		print("Yes as received a message "+self.messages[0])
-
+		print(repr(message))
 
 	def run(self):
 		print("yes") 

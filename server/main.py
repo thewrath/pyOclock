@@ -21,9 +21,27 @@ class Main(object):
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def index(self):
-        data = cherrypy.request.json
-        Server.log(data)
-        return "Hello World!"
+        if cherrypy.request.method == "POST":
+        	data = cherrypy.request.json
+        	#Server.log(data)
+        	return "200 OK"
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    def clock_configuration(self):
+        if cherrypy.request.method == "POST":
+        	data = cherrypy.request.json
+        	Server.log(data)
+        	self.server.send_message(data)
+        	return "200 OK"
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    def clock_message(self):
+        if cherrypy.request.method == "POST":
+        	data = cherrypy.request.json
+        	Server.log(data)
+        	return "200 OK"
 
 class Server(object):
 	"""docstring for Server"""
@@ -39,22 +57,19 @@ class Server(object):
 		Server.log("Disabled :")
 		Server.log(self.get_disabled_plugins())
 
-    # def run(self):
-        # pass
-        #for plugin in self.get_all_plugins():
-			#plugin.join()
-
-	# def handle_data(self, data):
-    #     pass
-		#check format and size
-        #check message datas send to
+	def send_message(self, data):
+		for plugin in self.get_enabled_plugins():
+			plugin.receive_message(data)
+		# check format and size
+  		#check message datas send to
+		#check name and type of message, add something to know if its message for type or to one specific plugin
 		# message = re.findall(r'&(.*?)&', data)
 		# log(message)
 		# if len(message) > 0 :
-		# 	for plugin in self.enabled_plugins:
-		# 		if plugin.get_name() == message[0]:
-		# 			#send to thread
-		# 			plugin.receive_message(message)
+			# for plugin in self.enabled_plugins:
+			# 	if plugin.get_name() == message[0]:
+			# 		#send to thread
+			# 		plugin.receive_message(message)
 
 	def get_enabled_plugins(self):
 		return self.enabled_plugins
@@ -85,17 +100,17 @@ class Server(object):
 
 	@staticmethod
 	def config_section_map(config, section):
-		dict1 = {}
+		dict_ = {}
 		options = config.options(section)
 		for option in options:
 			try:
-				dict1[option] = config.get(section, option)
-				if dict1[option] == -1:
+				dict_[option] = config.get(section, option)
+				if dict_[option] == -1:
 					Server.log("skip: %s" % option)
 			except:
 				print("exception on %s!" % option)
-				dict1[option] = None
-		return dict1
+				dict_[option] = None
+		return dict_
 
 	@staticmethod
 	def log(message):

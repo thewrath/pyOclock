@@ -89,17 +89,17 @@ class Server():
 
 	@staticmethod
 	def config_section_map(config, section):
-		dict1 = {}
+		dict_ = {}
 		options = config.options(section)
 		for option in options:
 			try:
-				dict1[option] = config.get(section, option)
-				if dict1[option] == -1:
+				dict_[option] = config.get(section, option)
+				if dict_[option] == -1:
 					log("skip: %s" % option)
 			except:
 				print("exception on %s!" % option)
-				dict1[option] = None
-		return dict1
+				dict_[option] = None
+		return dict_
 
 
 def log(message):

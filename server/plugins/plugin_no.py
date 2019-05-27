@@ -21,11 +21,11 @@ class No(Plugin):
 		Arguments:
 			name {[type]} -- [description]
 		"""
-		super(No, self).__init__(name, enable)
+		super(No, self).__init__(name, "useless",enable)
 
 	def receive_message(self, message):
 		super(No, self).receive_message(message)
-		print("No as received a message "+self.messages[0])
+		print("No has received a message ")
 
 	def run(self):
 		print("no")
