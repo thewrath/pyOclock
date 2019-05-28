@@ -11,6 +11,9 @@ class Plugin(threading.Thread):
 		self.buffer_length = 100;
 		self.messages = []
 
+	def terminate(self):
+		pass	
+
 	def run(self):
 		pass
 

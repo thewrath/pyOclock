@@ -17,6 +17,11 @@ PORT = 16666
 class Main(object):
     def __init__(self, config_path):
         self.server = Server(config_path)
+        #cherry.engine.subscribe('start', self.start)
+        cherrypy.engine.subscribe('stop', self.terminate)
+
+    def terminate(self):
+    	self.server.terminate()
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
@@ -56,6 +61,10 @@ class Server(object):
 		Server.log(self.get_enabled_plugins())
 		Server.log("Disabled :")
 		Server.log(self.get_disabled_plugins())
+
+	def terminate(self):
+		for plugin in self.get_all_plugins():
+			plugin.terminate()
 
 	def send_message(self, data):
 		for plugin in self.get_enabled_plugins():
