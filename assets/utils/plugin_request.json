@@ -1,0 +1,7 @@
+{
+   "token" : "my_secret_token",
+   "type" : "one" , //one/many/all
+   "plugin_name" : "tkinter display", //plugin_name / plugin_type
+   //other specific plugin data 
+   "message" : "mon message"
+}

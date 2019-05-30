@@ -13,7 +13,7 @@ green = (0, 255, 0)
 blue = (0, 0, 128) 
 
 def plugin_main(is_enable):
-	return TkinterDisplay("tkinter display", is_enable)
+	return TkinterDisplay("tkinter_display", is_enable)
 
 class TkinterDisplay(Plugin):
 	"""[summary]
@@ -53,9 +53,15 @@ class TkinterDisplay(Plugin):
 
 	def threaded_GUI(self):
 		while True:
-			# message = self.message_queue.get()
-			# print(message)
-			self.display_surface.fill(white)
+			#self.display_surface.fill(white)
+			if not self.message_queue.empty():
+				message = self.message_queue.get()
+				print(message)
+				self.textRect.center = (400//2, (300//2)+50)
+				self.text = self.font.render(message["message"], True, green, blue) 
+				self.display_surface.blit(self.text, self.textRect)
+			#time display 
+			self.textRect.center = (400//2, 300//2)
 			self.text = self.font.render(self.get_time(), True, green, blue) 
 			self.display_surface.blit(self.text, self.textRect) 
 			for event in pygame.event.get():
@@ -65,8 +71,12 @@ class TkinterDisplay(Plugin):
 
 	def receive_message(self, message):
 		super(TkinterDisplay, self).receive_message(message)
-		self.message_queue.put("message received")
+		if (self.check_message(message)):
+			self.message_queue.put(message)
 
+	def check_message(self, message):
+		return isinstance(message, dict) and "message" in message
+		
 	def get_time(self):
 		tdate = datetime.datetime.now()
 		return "{:d}:{:02d}".format(tdate.hour, tdate.minute)

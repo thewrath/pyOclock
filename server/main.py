@@ -28,24 +28,7 @@ class Main(object):
     def index(self):
         if cherrypy.request.method == "POST":
         	data = cherrypy.request.json
-        	#Server.log(data)
-        	return "200 OK"
-
-    @cherrypy.expose
-    @cherrypy.tools.json_in()
-    def clock_configuration(self):
-        if cherrypy.request.method == "POST":
-        	data = cherrypy.request.json
-        	Server.log(data)
         	self.server.send_message(data)
-        	return "200 OK"
-
-    @cherrypy.expose
-    @cherrypy.tools.json_in()
-    def clock_message(self):
-        if cherrypy.request.method == "POST":
-        	data = cherrypy.request.json
-        	Server.log(data)
         	return "200 OK"
 
 class Server(object):
@@ -67,18 +50,21 @@ class Server(object):
 			plugin.terminate()
 
 	def send_message(self, data):
-		for plugin in self.get_enabled_plugins():
-			plugin.receive_message(data)
-		# check format and size
-  		#check message datas send to
-		#check name and type of message, add something to know if its message for type or to one specific plugin
-		# message = re.findall(r'&(.*?)&', data)
-		# log(message)
-		# if len(message) > 0 :
-			# for plugin in self.enabled_plugins:
-			# 	if plugin.get_name() == message[0]:
-			# 		#send to thread
-			# 		plugin.receive_message(message)
+		if isinstance(data, dict) and "type" in data:
+			#unicast plugin 
+			if data["type"] == "one" and "plugin_name" in data:
+				for plugin in self.get_enabled_plugins():
+					if plugin.get_name() == data["plugin_name"]:
+						plugin.receive_message(data)
+			#multicast plugins
+			elif data["type"] == "many" and "plugin_type" in data:
+				for plugin in self.get_enabled_plugins():
+					if plugin.get_type() == data["plugin_type"]:
+						plugin.receive_message(data)
+			#broadcast plugins 				
+			elif data["type"] == "all":
+				for plugin in self.get_enabled_plugins():
+					plugin.receive_message(data)
 
 	def get_enabled_plugins(self):
 		return self.enabled_plugins
